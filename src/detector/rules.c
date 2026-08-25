@@ -1,5 +1,7 @@
 #include <string.h>
+#include <stdint.h>
 
+#include "../../include/ks_event.h"
 #include "rules.h"
 #include "process_table.h"
 

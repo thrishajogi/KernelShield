@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: (LGPL-2.1 OR BSD-2-Clause)
 /* Copyright (c) 2020 Facebook */
+#include <stdlib.h>
 #include <argp.h>
 #include <signal.h>
 
@@ -72,8 +73,6 @@ static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va
 
 static volatile bool exiting = false;
 
-static const char *json_log_path =
-    "/tmp/kernelshield-events.jsonl";
 
 static void sig_handler(int sig)
 {
@@ -221,10 +220,18 @@ int main(int argc, char **argv)
 	signal(SIGTERM, sig_handler);
 	ks_detector_init();
 
-	if (ks_logger_init("/tmp/kernelshield-events.jsonl") != 0) {
-		fprintf(stderr, "Failed to initialize KernelShield logger\n");
-		return 1;
-	}
+const char *log_path = getenv("KERNELSHIELD_LOG_PATH");
+
+if (!log_path || log_path[0] == '\0') {
+    log_path = "/var/log/kernelshield/kernelshield-events.jsonl";
+}
+
+printf("KernelShield logger: %s\n", log_path);
+
+if (ks_logger_init(log_path) != 0) {
+    fprintf(stderr, "Failed to initialize KernelShield logger\n");
+    return 1;
+}
 	skel = process_exec_bpf__open();
 	if (!skel) {
 		fprintf(stderr, "Failed to open and load BPF skeleton\n");

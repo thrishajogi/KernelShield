@@ -24,3 +24,12 @@ Makefile
 
 # OS
 .DS_Store
+logs/
+
+# Python generated files
+__pycache__/
+*.py[cod]
+
+# Runtime logs
+*.jsonl
+*.log

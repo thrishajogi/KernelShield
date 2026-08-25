@@ -57,7 +57,17 @@ for binary in "${BINARIES[@]}"; do
     install -m 755 "$binary" "$INSTALL_DIR/"
 done
 
-echo "[4/4] Verifying deployment..."
+echo "[4/5] Installing response engine..."
+
+mkdir -p "$INSTALL_DIR/response"
+
+cp -r "$PROJECT_ROOT/response/"* "$INSTALL_DIR/response/"
+
+chmod +x "$INSTALL_DIR/response/kernelshield_bridge.py"
+
+echo "[OK] Response engine installed."
+
+echo "[5/5] Verifying deployment..."
 
 ls -lh "$INSTALL_DIR"
 

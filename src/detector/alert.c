@@ -1,12 +1,31 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "ks_alert.h"
 #include "../response/response.h"
 
 #define KS_ALERT_JSONL_PATH "/var/log/kernelshield/alerts.jsonl"
 
+/*
+ * Final alert deduplication window.
+ *
+ * This is a defense-in-depth barrier against duplicate delivery
+ * of the same detection event. It does not replace behavioral
+ * correlation guards.
+ */
+#define KS_ALERT_DEDUP_WINDOW_NS 1000000000ULL
+
+typedef struct {
+    uint32_t pid;
+    uint64_t timestamp_ns;
+    char attack_type[KS_ALERT_ATTACK_TYPE_LEN];
+    char reason[KS_ALERT_REASON_LEN];
+    bool valid;
+} ks_alert_dedup_entry;
+
 static FILE *alert_fp = NULL;
+static ks_alert_dedup_entry last_alert;
 
 int ks_alert_init(void)
 {
@@ -88,10 +107,78 @@ static void json_escape(
     dst[j] = '\0';
 }
 
+static bool ks_alert_is_duplicate(
+    const ks_alert *alert)
+{
+    if (!alert || !last_alert.valid)
+        return false;
+
+    if (alert->pid != last_alert.pid)
+        return false;
+
+    if (strcmp(
+            alert->attack_type,
+            last_alert.attack_type
+        ) != 0)
+        return false;
+
+    if (strcmp(
+            alert->reason,
+            last_alert.reason
+        ) != 0)
+        return false;
+
+    if (alert->timestamp_ns <
+        last_alert.timestamp_ns)
+        return false;
+
+    return (alert->timestamp_ns -
+            last_alert.timestamp_ns)
+        <= KS_ALERT_DEDUP_WINDOW_NS;
+}
+
+static void ks_alert_remember(
+    const ks_alert *alert)
+{
+    if (!alert)
+        return;
+
+    last_alert.pid =
+        alert->pid;
+
+    last_alert.timestamp_ns =
+        alert->timestamp_ns;
+
+    strncpy(
+        last_alert.attack_type,
+        alert->attack_type,
+        sizeof(last_alert.attack_type) - 1
+    );
+
+    last_alert.attack_type[
+        sizeof(last_alert.attack_type) - 1
+    ] = '\0';
+
+    strncpy(
+        last_alert.reason,
+        alert->reason,
+        sizeof(last_alert.reason) - 1
+    );
+
+    last_alert.reason[
+        sizeof(last_alert.reason) - 1
+    ] = '\0';
+
+    last_alert.valid = true;
+}
+
 int ks_alert_write(const ks_alert *alert)
 {
     if (!alert)
         return -1;
+
+    if (ks_alert_is_duplicate(alert))
+        return 0;
 
     if (!alert_fp) {
         if (ks_alert_init() != 0)
@@ -194,6 +281,11 @@ int ks_alert_write(const ks_alert *alert)
 
     if (ferror(alert_fp))
         return -1;
+
+    /*
+     * Remember only successfully persisted alerts.
+     */
+    ks_alert_remember(alert);
 
     /*
      * Automated response is intentionally executed only

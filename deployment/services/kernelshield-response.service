@@ -1,0 +1,23 @@
+[Unit]
+Description=KernelShield Automated Response Bridge
+Documentation=https://github.com/thrishajogi/KernelShield
+After=network.target kernelshield.service
+Requires=kernelshield.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/kernelshield
+
+ExecStart=/usr/bin/python3 /opt/kernelshield/response/kernelshield_bridge.py
+
+Restart=on-failure
+RestartSec=5
+
+StandardOutput=journal
+StandardError=journal
+
+KillSignal=SIGTERM
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target

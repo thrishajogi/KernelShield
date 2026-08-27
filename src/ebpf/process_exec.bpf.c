@@ -381,6 +381,135 @@ int handle_openat(struct trace_event_raw_sys_enter *ctx)
     return 0;
 }
 
+
+/* ---------------------------------------------------------- */
+/* PRIVILEGE EXECUTION                                         */
+/* ---------------------------------------------------------- */
+
+SEC("tracepoint/syscalls/sys_enter_setuid")
+int handle_setuid(struct trace_event_raw_sys_enter *ctx)
+{
+    struct ks_event *e;
+    struct task_struct *task;
+    u64 id, uid_gid;
+    pid_t pid;
+
+    id = bpf_get_current_pid_tgid();
+    pid = id >> 32;
+
+    e = bpf_ringbuf_reserve(&rb, sizeof(*e), 0);
+    if (!e)
+        return 0;
+
+    init_event(e);
+
+    task = (struct task_struct *)bpf_get_current_task();
+    uid_gid = bpf_get_current_uid_gid();
+
+    e->timestamp_ns = bpf_ktime_get_ns();
+    e->pid = pid;
+    e->ppid = BPF_CORE_READ(task, real_parent, tgid);
+    e->uid = (u32)uid_gid;
+    e->gid = (u32)(uid_gid >> 32);
+
+    e->type = KS_EVENT_PRIVILEGE;
+    e->privilege_operation = KS_PRIV_UID_CHANGE;
+    e->old_uid = (u32)uid_gid;
+    e->new_uid = (u32)ctx->args[0];
+
+    bpf_get_current_comm(e->comm, sizeof(e->comm));
+
+    bpf_ringbuf_submit(e, 0);
+    return 0;
+}
+
+SEC("tracepoint/syscalls/sys_enter_setgid")
+int handle_setgid(struct trace_event_raw_sys_enter *ctx)
+{
+    struct ks_event *e;
+    struct task_struct *task;
+    u64 id, uid_gid;
+    pid_t pid;
+
+    id = bpf_get_current_pid_tgid();
+    pid = id >> 32;
+
+    e = bpf_ringbuf_reserve(&rb, sizeof(*e), 0);
+    if (!e)
+        return 0;
+
+    init_event(e);
+
+    task = (struct task_struct *)bpf_get_current_task();
+    uid_gid = bpf_get_current_uid_gid();
+
+    e->timestamp_ns = bpf_ktime_get_ns();
+    e->pid = pid;
+    e->ppid = BPF_CORE_READ(task, real_parent, tgid);
+    e->uid = (u32)uid_gid;
+    e->gid = (u32)(uid_gid >> 32);
+
+    e->type = KS_EVENT_PRIVILEGE;
+    e->privilege_operation = KS_PRIV_GID_CHANGE;
+    e->old_gid = (u32)(uid_gid >> 32);
+    e->new_gid = (u32)ctx->args[0];
+
+    bpf_get_current_comm(e->comm, sizeof(e->comm));
+
+    bpf_ringbuf_submit(e, 0);
+    return 0;
+}
+
+
+
+/* ---------------------------------------------------------- */
+/* PRIVILEGE EXECUTION                                         */
+/* ---------------------------------------------------------- */
+
+SEC("tracepoint/syscalls/sys_enter_execve")
+int handle_privileged_exec(struct trace_event_raw_sys_enter *ctx)
+{
+    struct ks_event *e;
+    struct task_struct *task;
+    u64 id;
+    u64 uid_gid;
+    pid_t pid;
+
+    uid_gid = bpf_get_current_uid_gid();
+
+    /* Only generate a privilege event when running as root. */
+    if ((u32)uid_gid != 0)
+        return 0;
+
+    id = bpf_get_current_pid_tgid();
+    pid = id >> 32;
+
+    e = bpf_ringbuf_reserve(&rb, sizeof(*e), 0);
+    if (!e)
+        return 0;
+
+    init_event(e);
+
+    task = (struct task_struct *)bpf_get_current_task();
+
+    e->timestamp_ns = bpf_ktime_get_ns();
+    e->pid = pid;
+    e->ppid = BPF_CORE_READ(task, real_parent, tgid);
+
+    e->uid = (u32)uid_gid;
+    e->gid = (u32)(uid_gid >> 32);
+
+    e->type = KS_EVENT_PRIVILEGE;
+    e->privilege_operation = KS_PRIV_EXEC_PRIVILEGED;
+
+    bpf_get_current_comm(e->comm, sizeof(e->comm));
+
+    bpf_ringbuf_submit(e, 0);
+
+    return 0;
+}
+
+
 /* ---------------------------------------------------------- */
 /* EXIT                                                         */
 /* ---------------------------------------------------------- */

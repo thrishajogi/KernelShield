@@ -1,0 +1,18 @@
+{
+    "schema_version": 1,
+    "pid": 7699,
+    "ppid": 7698,
+    "uid": 1000,
+    "gid": 1000,
+    "process_name": "sleep",
+    "parent_name": "python3",
+    "attack_type": "reverse_shell",
+    "alert_type": "behavioral",
+    "severity": "HIGH",
+    "reason": "Controlled test alert",
+    "mitre_technique": "T1059",
+    "has_network": 1,
+    "destination_ip": "203.0.113.10",
+    "destination_port": 4444,
+    "event_count": 1
+}

@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define KS_ALERT_SCHEMA_VERSION 1
+#define KS_ALERT_SCHEMA_VERSION 2
 
 #define KS_ALERT_PROCESS_LEN 64
 #define KS_ALERT_ATTACK_TYPE_LEN 64
@@ -43,6 +43,18 @@ typedef struct ks_alert {
     uint16_t destination_port;
 
     uint32_t event_count;
+
+    /*
+     * Behavioral risk metrics.
+     *
+     * risk_score:
+     *   0-100 accumulated behavioral evidence.
+     *
+     * confidence:
+     *   0-100 confidence derived from correlated evidence.
+     */
+    uint16_t risk_score;
+    uint16_t confidence;
 
 } ks_alert;
 

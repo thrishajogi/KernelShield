@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: (LGPL-2.1 OR BSD-2-Clause)
 /* Copyright (c) 2020 Facebook */
+#include <stdlib.h>
 #include <argp.h>
 #include <signal.h>
 
@@ -72,8 +73,6 @@ static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va
 
 static volatile bool exiting = false;
 
-static const char *json_log_path =
-    "/tmp/kernelshield-events.jsonl";
 
 static void sig_handler(int sig)
 {
@@ -164,6 +163,7 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 	else if (e->type == KS_EVENT_FILE) {
 
 		const char *operation = "UNKNOWN";
+		const char *path = e->file_path;
 
 		switch (e->file_operation) {
 		case KS_FILE_OPEN:
@@ -188,13 +188,63 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 			break;
 		}
 
-		printf("%-8s %-7s PID=%-6u COMM=%-16s OP=%-8s PATH=%s\n",
-		       ts,
-		       "FILE",
-		       e->pid,
-		       e->comm,
-		       operation,
-		       e->file_path);
+		/*
+		 * Console presentation filter.
+		 *
+		 * IMPORTANT:
+		 * This does NOT suppress telemetry or detection.
+		 * Every event has already been logged and passed to
+		 * the detection/correlation engine above.
+		 *
+		 * Only high-value or potentially suspicious file
+		 * activity is displayed on the interactive console.
+		 */
+		bool noisy_path =
+			strstr(path, "/.cache/") ||
+			strstr(path, "/cache2/") ||
+			strstr(path, "/mozilla/") ||
+			strstr(path, "/fontconfig/") ||
+			strstr(path, "/mesa_shader_cache/") ||
+			strstr(path, "/fonts/") ||
+			strstr(path, "/snap/firefox/") ||
+			strstr(path, ".sqlite") ||
+			strstr(path, ".sqlite-wal") ||
+			strstr(path, ".sqlite-journal") ||
+			strstr(path, ".cache-");
+
+		bool destructive_operation =
+			e->file_operation == KS_FILE_RENAME ||
+			e->file_operation == KS_FILE_DELETE;
+
+		bool executable_activity =
+			e->file_operation == KS_FILE_EXECUTE;
+
+		bool sensitive_path =
+			strstr(path, "/etc/") ||
+			strstr(path, "/usr/bin/") ||
+			strstr(path, "/usr/sbin/") ||
+			strstr(path, "/bin/") ||
+			strstr(path, "/sbin/") ||
+			strstr(path, "/var/tmp/") ||
+			strstr(path, "/tmp/");
+
+		bool user_writable_activity =
+			strstr(path, "/home/") &&
+			!noisy_path;
+
+		if (destructive_operation ||
+		    executable_activity ||
+		    sensitive_path ||
+		    user_writable_activity) {
+
+			printf("%-8s %-7s PID=%-6u COMM=%-16s OP=%-8s PATH=%s\n",
+			       ts,
+			       "FILE",
+			       e->pid,
+			       e->comm,
+			       operation,
+			       path);
+		}
 	}
 
 	fflush(stdout);
@@ -221,10 +271,18 @@ int main(int argc, char **argv)
 	signal(SIGTERM, sig_handler);
 	ks_detector_init();
 
-	if (ks_logger_init("/tmp/kernelshield-events.jsonl") != 0) {
-		fprintf(stderr, "Failed to initialize KernelShield logger\n");
-		return 1;
-	}
+const char *log_path = getenv("KERNELSHIELD_LOG_PATH");
+
+if (!log_path || log_path[0] == '\0') {
+    log_path = "/var/log/kernelshield/kernelshield-events.jsonl";
+}
+
+printf("KernelShield logger: %s\n", log_path);
+
+if (ks_logger_init(log_path) != 0) {
+    fprintf(stderr, "Failed to initialize KernelShield logger\n");
+    return 1;
+}
 	skel = process_exec_bpf__open();
 	if (!skel) {
 		fprintf(stderr, "Failed to open and load BPF skeleton\n");

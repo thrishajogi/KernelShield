@@ -24,3 +24,24 @@ Makefile
 
 # OS
 .DS_Store
+logs/
+
+# Python generated files
+__pycache__/
+*.py[cod]
+
+# Runtime logs
+*.jsonl
+*.log
+
+# Local development backups and test binaries
+*.bak-*
+tests/response_test
+
+# Local development backups and compiled test binaries
+*.bak-*
+tests/response_test
+
+# Compiled local integration test binaries
+tests/alert_response_test
+tests/protected_response_test

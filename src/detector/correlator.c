@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include <arpa/inet.h>
 
 #include "detector.h"
@@ -21,6 +22,7 @@ static void emit_detection_alert(
     const char *attack_type,
     const char *alert_type,
     const char *severity,
+    const char *action_taken,
     const char *reason,
     const char *mitre,
     uint8_t has_network,
@@ -95,6 +97,12 @@ static void emit_detection_alert(
         alert.severity,
         severity,
         sizeof(alert.severity) - 1
+    );
+
+    strncpy(
+        alert.action_taken,
+        action_taken,
+        sizeof(alert.action_taken) - 1
     );
 
     strncpy(
@@ -212,6 +220,7 @@ void ks_detector_process_event(const struct ks_event *event)
                 "behavioral",
                 "high",
                 "A server process spawned a shell",
+                "Alert Generated",
                 "T1059",
                 0,
                 NULL,
@@ -303,6 +312,7 @@ void ks_detector_process_event(const struct ks_event *event)
                 "multi_stage_attack",
                 "correlation",
                 "critical",
+                "Process Terminated",
                 "Correlated server-to-shell-to-network behavior detected",
                 "T1059",
                 1,
@@ -350,6 +360,7 @@ void ks_detector_process_event(const struct ks_event *event)
                 "shell_network_activity",
                 "network",
                 "high",
+                "Process Terminated",
                 "Shell process generated outbound network activity",
                 "T1059",
                 1,

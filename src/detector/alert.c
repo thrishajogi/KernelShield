@@ -102,6 +102,7 @@ int ks_alert_write(const ks_alert *alert)
     char attack_type[KS_ALERT_ATTACK_TYPE_LEN * 2];
     char alert_type[KS_ALERT_ALERT_TYPE_LEN * 2];
     char severity[KS_ALERT_SEVERITY_LEN * 2];
+    char action_taken[64];
     char reason[KS_ALERT_REASON_LEN * 2];
     char mitre[KS_ALERT_MITRE_LEN * 2];
     char destination_ip[KS_ALERT_IP_LEN * 2];
@@ -125,6 +126,10 @@ int ks_alert_write(const ks_alert *alert)
     json_escape(alert->severity,
                 severity,
                 sizeof(severity));
+
+    json_escape(alert->action_taken,
+            action_taken,
+            sizeof(action_taken));
 
     json_escape(alert->reason,
                 reason,
@@ -152,6 +157,7 @@ int ks_alert_write(const ks_alert *alert)
         "\"attack_type\":\"%s\","
         "\"alert_type\":\"%s\","
         "\"severity\":\"%s\","
+        "\"action_taken\":\"%s\","
         "\"reason\":\"%s\","
         "\"mitre_technique\":\"%s\","
         "\"has_network\":%u,"
@@ -174,6 +180,7 @@ int ks_alert_write(const ks_alert *alert)
         attack_type,
         alert_type,
         severity,
+        action_taken,
 
         reason,
         mitre,

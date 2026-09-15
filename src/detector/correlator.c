@@ -172,6 +172,7 @@ static void emit_detection_alert(
     const char *attack_type,
     const char *alert_type,
     const char *severity,
+    const char *action_taken,
     const char *reason,
     const char *mitre,
     uint8_t has_network,
@@ -246,6 +247,12 @@ static void emit_detection_alert(
         alert.severity,
         severity,
         sizeof(alert.severity) - 1
+    );
+
+    strncpy(
+        alert.action_taken,
+        action_taken,
+        sizeof(alert.action_taken) - 1
     );
 
     strncpy(
@@ -575,6 +582,7 @@ void ks_detector_process_event(
                 "multi_stage_attack",
                 "correlation",
                 "critical",
+                "Process Terminated",
                 "Execution and network behavior formed a correlated multi-stage process chain",
                 "T1059",
                 1,
@@ -604,6 +612,7 @@ void ks_detector_process_event(
                 severity_for_score(
                     process->behavioral_score
                 ),
+                "Process Terminated",
                 "Shell process generated outbound network activity",
                 "T1059",
                 1,
@@ -781,6 +790,7 @@ void ks_detector_process_event(
                 severity_for_score(
                     process->episode_score
                 ),
+                "Alert Generated",
                 "Temporary file creation and modification correlated with independent suspicious process behavior",
                 "T1105",
                 process->made_network_connection ? 1 : 0,
@@ -883,6 +893,7 @@ void ks_detector_process_event(
                 severity_for_score(
                     process->episode_score
                 ),
+                "Alert Generated",
                 "Privilege transition correlated with independent network, shell, or multi-stage evidence",
                 "T1548",
                 process->made_network_connection ? 1 : 0,

@@ -30,6 +30,7 @@ typedef struct ks_alert {
     char attack_type[KS_ALERT_ATTACK_TYPE_LEN];
     char alert_type[KS_ALERT_ALERT_TYPE_LEN];
     char severity[KS_ALERT_SEVERITY_LEN];
+    char action_taken[32];
 
     char reason[KS_ALERT_REASON_LEN];
 

@@ -3,7 +3,7 @@
 
 #include "ks_alert.h"
 
-#define KS_ALERT_JSONL_PATH "/tmp/kernelshield-alerts.jsonl"
+#define KS_ALERT_JSONL_PATH "/var/log/kernelshield/alerts.jsonl"
 
 static FILE *alert_fp = NULL;
 

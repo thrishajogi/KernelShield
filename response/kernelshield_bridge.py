@@ -7,7 +7,7 @@ import sys
 import time
 
 
-ALERT_FILE = "/tmp/kernelshield-alerts.jsonl"
+ALERT_FILE = "/var/log/kernelshield/alerts.jsonl"
 DETECTION_FILE = "detection.json"
 
 

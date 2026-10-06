@@ -581,7 +581,7 @@ void ks_detector_process_event(
                 event,
                 "multi_stage_attack",
                 "correlation",
-                "critical",
+                severity_for_score(process->behavioral_score),
                 "Process Terminated",
                 "Execution and network behavior formed a correlated multi-stage process chain",
                 "T1059",

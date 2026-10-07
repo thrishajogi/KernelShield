@@ -292,13 +292,32 @@ static void emit_detection_alert(
 
     if (assessment_process) {
 
+        /*
+         * Final attack score:
+         *   60% behavioral risk + 40% confidence.
+         *
+         * Both components are normalized to 0-100.
+         */
+        int raw_risk =
+            (int)assessment_process->episode_score;
+
+        int confidence =
+            (int)confidence_for_score(raw_risk);
+
+        int final_score =
+            (raw_risk * 60 + confidence * 40) / 100;
+
         alert.risk_score =
-            (uint16_t)assessment_process->episode_score;
+            (uint16_t)final_score;
 
         alert.confidence =
-            confidence_for_score(
-                assessment_process->episode_score
-            );
+            (uint16_t)confidence;
+
+        strncpy(
+            alert.severity,
+            severity_for_score(final_score),
+            sizeof(alert.severity) - 1
+        );
     }
 
     if (ks_alert_write(&alert) != 0) {
@@ -582,7 +601,7 @@ void ks_detector_process_event(
                 "multi_stage_attack",
                 "correlation",
                 severity_for_score(process->behavioral_score),
-                "Process Terminated",
+                "Pending automated response",
                 "Execution and network behavior formed a correlated multi-stage process chain",
                 "T1059",
                 1,
@@ -612,7 +631,7 @@ void ks_detector_process_event(
                 severity_for_score(
                     process->behavioral_score
                 ),
-                "Process Terminated",
+                "Pending automated response",
                 "Shell process generated outbound network activity",
                 "T1059",
                 1,

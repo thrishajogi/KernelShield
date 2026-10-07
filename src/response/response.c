@@ -39,12 +39,15 @@ ks_response_decide(
         return KS_RESPONSE_LOG;
 
     /*
-     * Automatic containment is reserved for
-     * high-confidence critical detections.
+     * Beta (β) is the automated containment threshold.
+     * β = 85 preserves the existing high-confidence
+     * critical-response policy.
      */
+    const uint32_t beta = 85;
+
     if (strcmp(severity, "critical") == 0 &&
-        risk_score >= 85 &&
-        confidence >= 85) {
+        risk_score >= beta &&
+        confidence >= beta) {
 
         return KS_RESPONSE_TERMINATE;
     }
